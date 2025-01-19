@@ -36,99 +36,99 @@ function App() {
     }
   }
 
- // App.js
- async function addNewTransaction(ev) {
-  ev.preventDefault();
-  setError('');
+  async function addNewTransaction(ev) {
+    ev.preventDefault();
+    setError('');
 
-  try {
-    // Basic validation
-    if (!name || !datetime) {
-      setError('Please fill in all required fields');
-      return;
+    try {
+      // Basic validation
+      if (!name || !datetime) {
+        setError('Please fill in all required fields');
+        return;
+      }
+
+      // Improved price parsing regex
+      // Matches formats like: +Rp 60.000, -Rp 60.000, Rp 60.000
+      const priceRegex = /^([+-])?Rp\s*([\d.,]+)/;
+      const matches = name.match(priceRegex);
+
+      if (!matches) {
+        setError('Please enter a valid price format (e.g., +Rp 60.000 or -Rp 60.000)');
+        return;
+      }
+
+      // Extract sign and number parts
+      const sign = matches[1] === '-' ? -1 : 1;
+      const priceString = matches[2]
+        .replace(/\./g, '') // Remove thousand separators
+        .replace(/,/g, '.'); // Convert decimal comma to dot if present
+
+      // Parse the price
+      const price = sign * parseFloat(priceString);
+
+      if (isNaN(price)) {
+        setError('Invalid price value');
+        return;
+      }
+
+      // Get the transaction name by removing the price part
+      const transactionName = name.substring(matches[0].length).trim();
+      
+      if (!transactionName) {
+        setError('Please enter a description after the price');
+        return;
+      }
+
+      // Prepare transaction data
+      const transactionData = {
+        price,
+        name: transactionName,
+        description,
+        datetime
+      };
+
+      // Construct the URL
+      const baseUrl = process.env.REACT_APP_API_URL?.replace(/\/$/, '') || 'http://localhost:4070/api';
+      const url = `${baseUrl}/transaction`;
+      
+      console.log('Sending transaction:', transactionData);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(transactionData)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `HTTP error! status: ${response.status}`);
+      }
+
+      const json = await response.json();
+      console.log('Transaction added successfully:', json);
+
+      // Clear form
+      setName('');
+      setDatetime('');
+      setDescription('');
+      
+      // Refresh transactions list
+      await getTransactions();
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      setError(`Failed to add transaction: ${error.message}`);
     }
-
-    // Improved price parsing regex
-    // Matches formats like: +Rp 60.000, -Rp 60.000, Rp 60.000
-    const priceRegex = /^([+-])?Rp\s*([\d.,]+)/;
-    const matches = name.match(priceRegex);
-
-    if (!matches) {
-      setError('Please enter a valid price format (e.g., +Rp 60.000 or -Rp 60.000)');
-      return;
-    }
-
-    // Extract sign and number parts
-    const sign = matches[1] === '-' ? -1 : 1;
-    const priceString = matches[2]
-      .replace(/\./g, '') // Remove thousand separators
-      .replace(/,/g, '.'); // Convert decimal comma to dot if present
-
-    // Parse the price
-    const price = sign * parseFloat(priceString);
-
-    if (isNaN(price)) {
-      setError('Invalid price value');
-      return;
-    }
-
-    // Get the transaction name by removing the price part
-    const transactionName = name.substring(matches[0].length).trim();
-    
-    if (!transactionName) {
-      setError('Please enter a description after the price');
-      return;
-    }
-
-    // Prepare transaction data
-    const transactionData = {
-      price,
-      name: transactionName,
-      description,
-      datetime
-    };
-
-    // Construct the URL
-    const baseUrl = process.env.REACT_APP_API_URL?.replace(/\/$/, '') || 'http://localhost:4070/api';
-    const url = `${baseUrl}/transaction`;
-    
-    console.log('Sending transaction:', transactionData);
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(transactionData)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || `HTTP error! status: ${response.status}`);
-    }
-
-    const json = await response.json();
-    console.log('Transaction added successfully:', json);
-
-    // Clear form
-    setName('');
-    setDatetime('');
-    setDescription('');
-    
-    // Refresh transactions list
-    await getTransactions();
-  } catch (error) {
-    console.error('Error adding transaction:', error);
-    setError(`Failed to add transaction: ${error.message}`);
   }
-}
+
   const balance = transactions.reduce((sum, transaction) => 
     sum + (typeof transaction.price === 'number' ? transaction.price : parseFloat(transaction.price) || 0)
   , 0);
 
   return (
     <main>
-      <h1>Rp {balance.toLocaleString('id-ID')}</h1>
+      <h1>Rp {balance.toLocaleString('en-IN')}</h1>
       {error && (
         <div style={{ color: '#c11', textAlign: 'center', margin: '10px 0', padding: '10px' }}>
           {error}
@@ -169,10 +169,10 @@ function App() {
             </div>
             <div className="right">
               <div className={"price " + (transaction.price < 0 ? 'red' : 'green')}>
-                Rp {Math.abs(transaction.price).toLocaleString('id-ID')}
+                Rp {Math.abs(transaction.price).toLocaleString('en-IN')}
               </div>
               <div className="datetime">
-                {new Date(transaction.datetime).toLocaleString('id-ID')}
+                {new Date(transaction.datetime).toLocaleString('en-IN')}
               </div>
             </div>
           </div>
